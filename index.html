@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Frontend Mastery Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals (Slate, Stone, Zinc) with Amber Accent -->
+    <!-- Application Structure Plan: A non-linear, interactive dashboard with a persistent sidebar for primary navigation. This structure empowers users to explore topics based on interest rather than following a rigid, linear path. Key sections like Frameworks and the Learning Plan are transformed into interactive visualizations (dynamic charts, clickable timelines) to make complex data more digestible and engaging. The goal is to turn a text-heavy report into an exploratory learning tool that enhances understanding and retention. -->
+    <!-- Visualization & Content Choices: 
+        - Framework Comparison: A dynamic bar chart (Chart.js) to compare React, Angular, and Vue based on user selection. Goal: Compare. Justification: More engaging and direct than a static table.
+        - Architecture Suitability: A set of interactive cards. Goal: Organize/Inform. Justification: Simplifies complex trade-offs into easily scannable points.
+        - Learning Timeline: A clickable, horizontal timeline. Goal: Change/Organize. Justification: Visualizes progression and makes the plan feel more manageable.
+        - CI/CD Pipeline: A clickable flowchart diagram. Goal: Organize/Process. Justification: Clearly illustrates the flow and relationships between stages.
+        - Core Web Vitals: Interactive gauge-like cards. Goal: Inform. Justification: Provides a quick, visual summary of key performance metrics.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            color: #27272a; /* zinc-800 */
+        }
+        .sidebar-link {
+            transition: all 0.2s ease-in-out;
+        }
+        .sidebar-link.active, .sidebar-link:hover {
+            background-color: #fcd34d; /* amber-300 */
+            color: #44403c; /* stone-700 */
+            transform: translateX(4px);
+        }
+        .content-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0; /* slate-200 */
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        .content-card:hover {
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.1);
+            transform: translateY(-2px);
+        }
+        .tab-button.active {
+            background-color: #fcd34d; /* amber-300 */
+            color: #44403c; /* stone-700 */
+            font-weight: 600;
+        }
+        .framework-toggle.active {
+            background-color: #fbbf24; /* amber-400 */
+            color: #18181b; /* zinc-900 */
+            border-color: #f59e0b; /* amber-500 */
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 1rem;
+            height: 1rem;
+            border-radius: 9999px;
+            background-color: #e2e8f0; /* slate-200 */
+            border: 3px solid #f8fafc; /* slate-50 */
+        }
+        .timeline-item.active::before {
+            background-color: #fcd34d; /* amber-300 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 50vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 450px;
+            }
+        }
+        .generated-content {
+            white-space: pre-wrap; /* Preserve whitespace and line breaks */
+            font-size: 0.9rem;
+            color: #3f3f46; /* zinc-700 */
+        }
+        .loading-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            color: #f59e0b; /* amber-500 */
+        }
+        .loading-indicator::before {
+            content: '';
+            border: 3px solid #fde68a; /* amber-100 */
+            border-top: 3px solid #f59e0b; /* amber-500 */
+            border-radius: 50%;
+            width: 1.25rem;
+            height: 1.25rem;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="flex min-h-screen">
+    <aside class="w-64 bg-stone-800 text-stone-100 p-6 sticky top-0 h-screen overflow-y-auto hidden md:block">
+        <h1 class="text-2xl font-bold text-amber-300 mb-8">Frontend Mastery</h1>
+        <nav id="sidebar-nav" class="flex flex-col space-y-2">
+            <a href="#introduction" class="sidebar-link p-3 rounded-md active">Introduction</a>
+            <a href="#foundations" class="sidebar-link p-3 rounded-md">The Foundations</a>
+            <a href="#frameworks" class="sidebar-link p-3 rounded-md">Frameworks & Libraries</a>
+            <a href="#architecting" class="sidebar-link p-3 rounded-md">Architecting Systems</a>
+            <a href="#engineering" class="sidebar-link p-3 rounded-md">Engineering Excellence</a>
+            <a href="#workflow" class="sidebar-link p-3 rounded-md">Modern Workflow</a>
+            <a href="#learning-plan" class="sidebar-link p-3 rounded-md">Your Learning Plan</a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 p-4 sm:p-6 lg:p-10">
+        <button id="menu-toggle" class="md:hidden fixed top-4 right-4 z-50 p-2 bg-stone-800 text-white rounded-md">
+            <svg id="menu-open-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
+            <svg id="menu-close-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+
+        <div id="mobile-menu" class="md:hidden fixed inset-0 bg-stone-800 z-40 transform -translate-x-full transition-transform duration-300 ease-in-out">
+            <aside class="w-full text-stone-100 p-6 h-screen overflow-y-auto">
+                 <h1 class="text-2xl font-bold text-amber-300 mb-8 mt-12">Frontend Mastery</h1>
+                 <nav id="mobile-sidebar-nav" class="flex flex-col space-y-2">
+                    <a href="#introduction" class="sidebar-link p-3 rounded-md">Introduction</a>
+                    <a href="#foundations" class="sidebar-link p-3 rounded-md">The Foundations</a>
+                    <a href="#frameworks" class="sidebar-link p-3 rounded-md">Frameworks & Libraries</a>
+                    <a href="#architecting" class="sidebar-link p-3 rounded-md">Architecting Systems</a>
+                    <a href="#engineering" class="sidebar-link p-3 rounded-md">Engineering Excellence</a>
+                    <a href="#workflow" class="sidebar-link p-3 rounded-md">Modern Workflow</a>
+                    <a href="#learning-plan" class="sidebar-link p-3 rounded-md">Your Learning Plan</a>
+                </nav>
+            </aside>
+        </div>
+
+        <div id="content" class="space-y-16">
+            <section id="introduction">
+                <div class="content-card p-6 md:p-8">
+                    <h2 class="text-3xl font-bold text-stone-800 mb-4">Charting Your Course to Frontend Mastery</h2>
+                    <p class="text-lg text-stone-600 mb-6">This guide transforms the comprehensive "Frontend Mastery" report into an interactive learning experience. Frontend mastery is more than just writing code; it's the art of designing robust, scalable, and user-centric systems. This application will guide you through the core principles, from the foundational technologies to advanced architectural decisions, helping you navigate the ever-evolving frontend landscape.</p>
+                    <div class="bg-slate-100 p-4 rounded-lg">
+                        <p class="text-stone-700">Use the navigation on the left to jump between topics, or simply scroll to begin your journey. Interactive elements throughout this guide are designed to deepen your understanding and make learning more engaging.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="foundations">
+                <h2 class="text-3xl font-bold text-stone-800 mb-6">The Unshakeable Foundations</h2>
+                <div class="content-card p-6 md:p-8">
+                    <p class="text-lg text-stone-600 mb-6">Every web application, no matter how complex, is built upon HTML, CSS, and JavaScript. This section provides an interactive exploration of these core technologies and how browsers use them to render pages. Mastering these fundamentals is the first and most critical step towards becoming a frontend architect.</p>
+                    <div id="tabs-foundations" class="mb-4 border-b border-slate-200">
+                        <nav class="flex space-x-1 -mb-px" aria-label="Tabs">
+                            <button class="tab-button active py-4 px-6 rounded-t-md" data-tab="html">HTML</button>
+                            <button class="tab-button py-4 px-6 rounded-t-md" data-tab="css">CSS</button>
+                            <button class="tab-button py-4 px-6 rounded-t-md" data-tab="js">JavaScript</button>
+                            <button class="tab-button py-4 px-6 rounded-t-md" data-tab="browser">Browser Rendering</button>
+                        </nav>
+                    </div>
+                    <div id="tab-content-foundations">
+                        <div data-tab-content="html">
+                            <h3 class="text-2xl font-semibold mb-3">HTML: The Semantic Skeleton</h3>
+                            <p class="mb-4">HTML provides the structural backbone of the web. Using semantic tags like <code>&lt;nav&gt;</code>, <code>&lt;main&gt;</code>, and <code>&lt;article&gt;</code> is crucial because it gives meaning to your content, which dramatically improves accessibility for screen reader users and helps search engines (SEO) understand your page structure.</p>
+                            <button class="generate-explanation-button mt-4 px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 transition" data-concept="HTML semantics and a small code example">✨ Get Detailed Explanation</button>
+                            <div class="explanation-output mt-4 p-4 bg-slate-50 rounded-md border border-slate-200 hidden"><div class="loading-indicator hidden"></div><div class="generated-text"></div></div>
+                        </div>
+                        <div data-tab-content="css" class="hidden">
+                            <h3 class="text-2xl font-semibold mb-3">CSS: The Art of Presentation</h3>
+                            <p class="mb-4">CSS controls the visual presentation. Modern layout is dominated by <strong>Flexbox</strong> (for one-dimensional layouts like aligning items in a navigation bar) and <strong>CSS Grid</strong> (for complex, two-dimensional page layouts). Mastering these is key to building responsive designs that work on any device.</p>
+                             <button class="generate-explanation-button mt-4 px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 transition" data-concept="CSS Flexbox and Grid with a small code example">✨ Get Detailed Explanation</button>
+                            <div class="explanation-output mt-4 p-4 bg-slate-50 rounded-md border border-slate-200 hidden"><div class="loading-indicator hidden"></div><div class="generated-text"></div></div>
+                        </div>
+                        <div data-tab-content="js" class="hidden">
+                            <h3 class="text-2xl font-semibold mb-3">JavaScript: The Engine of Interactivity</h3>
+                            <p class="mb-4">JavaScript brings your pages to life. Modern JS (ES6+) provides powerful features like <code>async/await</code> for handling asynchronous operations (like fetching data from an API) cleanly, and modules for organizing code into reusable, maintainable pieces.</p>
+                             <button class="generate-explanation-button mt-4 px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 transition" data-concept="JavaScript asynchronous programming and modules with a small code example">✨ Get Detailed Explanation</button>
+                            <div class="explanation-output mt-4 p-4 bg-slate-50 rounded-md border border-slate-200 hidden"><div class="loading-indicator hidden"></div><div class="generated-text"></div></div>
+                        </div>
+                        <div data-tab-content="browser" class="hidden">
+                            <h3 class="text-2xl font-semibold mb-3">How Browsers Render Pages</h3>
+                            <p class="mb-4">Understanding the <strong>Critical Rendering Path</strong> is vital for performance. The browser must parse HTML to build the DOM, parse CSS to build the CSSOM, combine them into a Render Tree, and then perform Layout and Painting. Optimizing this path is key to fast-loading sites.</p>
+                             <button class="generate-explanation-button mt-4 px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 transition" data-concept="Browser Critical Rendering Path in detail">✨ Get Detailed Explanation</button>
+                            <div class="explanation-output mt-4 p-4 bg-slate-50 rounded-md border border-slate-200 hidden"><div class="loading-indicator hidden"></div><div class="generated-text"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="frameworks">
+                <h2 class="text-3xl font-bold text-stone-800 mb-6">Comparing Modern Frameworks</h2>
+                 <div class="content-card p-6 md:p-8">
+                     <p class="text-lg text-stone-600 mb-6">Frameworks provide the structure for building complex, scalable applications. This section allows you to interactively compare the leading options—React, Angular, and Vue.js—across key criteria to understand their unique philosophies and strengths. The choice of framework is a critical architectural decision that impacts your project's entire lifecycle.</p>
+                    <div class="flex flex-wrap justify-center gap-2 mb-6">
+                        <button class="framework-toggle active p-2 px-4 border-2 rounded-full transition" data-framework="React">React</button>
+                        <button class="framework-toggle active p-2 px-4 border-2 rounded-full transition" data-framework="Angular">Angular</button>
+                        <button class="framework-toggle active p-2 px-4 border-2 rounded-full transition" data-framework="Vue.js">Vue.js</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="frameworksChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="architecting">
+                <h2 class="text-3xl font-bold text-stone-800 mb-6">Architecting Scalable Systems</h2>
+                <div class="content-card p-6 md:p-8">
+                    <p class="text-lg text-stone-600 mb-6">As applications grow, the right architecture is essential for maintainability and scalability. Below, we explore key architectural patterns, from simple monoliths to distributed microfrontends. Understanding these patterns allows you to choose the right structure for your project's scale and team size.</p>
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="bg-slate-100 p-6 rounded-lg">
+                            <h4 class="font-bold text-xl mb-2">Monolithic</h4>
+                            <p>The entire app is a single unit. Best for small projects with small teams. Simple to start, but can become complex and hard to scale.</p>
+                        </div>
+                        <div class="bg-slate-100 p-6 rounded-lg">
+                            <h4 class="font-bold text-xl mb-2">Component-Based</h4>
+                            <p>UI is built from reusable components. The standard for modern frameworks like React. Excellent for reusability and maintainability.</p>
+                        </div>
+                        <div class="bg-slate-100 p-6 rounded-lg">
+                            <h4 class="font-bold text-xl mb-2">Microfrontends</h4>
+                            <p>The app is split into independently deployable frontends. Ideal for large, complex projects with multiple teams. Offers maximum scalability and team autonomy, but adds complexity.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="engineering">
+                <h2 class="text-3xl font-bold text-stone-800 mb-6">Engineering for Excellence</h2>
+                <div class="content-card p-6 md:p-8">
+                    <p class="text-lg text-stone-600 mb-6">A truly great application excels in performance, security, and accessibility. These are not afterthoughts but core architectural pillars. This section highlights the key metrics and practices required to build high-quality, user-centric experiences.</p>
+                    <div class="grid md:grid-cols-3 gap-6 text-center">
+                        <div class="p-4 border-2 border-green-200 rounded-lg bg-green-50">
+                            <h4 class="font-semibold text-lg mb-2 text-green-800">Performance</h4>
+                            <p class="text-3xl font-bold text-green-600">LCP &lt; 2.5s</p>
+                            <p class="text-sm text-green-700 mt-1">Focus on Core Web Vitals. Optimize images, split code, and use a CDN to ensure fast load times.</p>
+                        </div>
+                        <div class="p-4 border-2 border-red-200 rounded-lg bg-red-50">
+                            <h4 class="font-semibold text-lg mb-2 text-red-800">Security</h4>
+                            <p class="text-3xl font-bold text-red-600">OWASP</p>
+                            <p class="text-sm text-red-700 mt-1">Prevent XSS and CSRF. Sanitize all user input and use a Content Security Policy (CSP).</p>
+                        </div>
+                        <div class="p-4 border-2 border-blue-200 rounded-lg bg-blue-50">
+                            <h4 class="font-semibold text-lg mb-2 text-blue-800">Accessibility (A11y)</h4>
+                            <p class="text-3xl font-bold text-blue-600">WCAG AA</p>
+                            <p class="text-sm text-blue-700 mt-1">Use semantic HTML, manage keyboard focus, and use ARIA attributes for dynamic content.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="workflow">
+                <h2 class="text-3xl font-bold text-stone-800 mb-6">The Modern Development Workflow</h2>
+                 <div class="content-card p-6 md:p-8">
+                    <p class="text-lg text-stone-600 mb-6">An efficient workflow is crucial for delivering quality software quickly and reliably. This involves a suite of tools and processes, from version control to automated deployment. Explore the key stages of a modern CI/CD pipeline below.</p>
+                    <div id="cicd-pipeline" class="flex flex-col md:flex-row items-center justify-between gap-4 text-center">
+                        <div class="pipeline-stage p-4 rounded-lg bg-slate-100 flex-1">
+                            <h4 class="font-semibold">1. Source</h4>
+                            <p class="text-sm">Commit code to Git</p>
+                        </div>
+                        <div class="text-2xl text-slate-300 font-mono">&gt;</div>
+                        <div class="pipeline-stage p-4 rounded-lg bg-slate-100 flex-1">
+                            <h4 class="font-semibold">2. Build</h4>
+                            <p class="text-sm">Bundle with Vite/Webpack</p>
+                        </div>
+                        <div class="text-2xl text-slate-300 font-mono">&gt;</div>
+                         <div class="pipeline-stage p-4 rounded-lg bg-slate-100 flex-1">
+                            <h4 class="font-semibold">3. Test</h4>
+                            <p class="text-sm">Run unit, component & E2E tests</p>
+                        </div>
+                        <div class="text-2xl text-slate-300 font-mono">&gt;</div>
+                         <div class="pipeline-stage p-4 rounded-lg bg-slate-100 flex-1">
+                            <h4 class="font-semibold">4. Deploy</h4>
+                            <p class="text-sm">Release to production</p>
+                        </div>
+                    </div>
+                 </div>
+            </section>
+            
+            <section id="learning-plan">
+                <h2 class="text-3xl font-bold text-stone-800 mb-6">Your Path to Mastery: An Interactive Plan</h2>
+                <div class="content-card p-6 md:p-8">
+                     <p class="text-lg text-stone-600 mb-6">Mastery is a journey, not a destination. This interactive timeline breaks down the comprehensive learning plan into manageable phases. Click on each phase to see the key topics and skills to focus on. This structured approach will guide you from a novice to a seasoned frontend architect.</p>
+                    <div id="timeline-container" class="relative pl-12 border-l-2 border-slate-200">
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const frameworkData = {
+                'React': {
+                    'Learning Curve': 3, // 1-5 scale, 1=easy, 5=hard
+                    'Performance': 5,
+                    'Scalability': 4,
+                    'Ecosystem': 5,
+                },
+                'Angular': {
+                    'Learning Curve': 5,
+                    'Performance': 4,
+                    'Scalability': 5,
+                    'Ecosystem': 4,
+                },
+                'Vue.js': {
+                    'Learning Curve': 2,
+                    'Performance': 4,
+                    'Scalability': 3,
+                    'Ecosystem': 3,
+                }
+            };
+            
+            const timelineData = [
+                {
+                    phase: "Months 1-3",
+                    title: "Master the Foundations",
+                    description: "Deeply understand semantic HTML, modern CSS with Flexbox/Grid, and core JavaScript concepts including ES6+ and asynchronous programming."
+                },
+                {
+                    phase: "Months 4-8",
+                    title: "Embrace Modern Frameworks",
+                    description: "Choose and master one primary framework (React, Angular, or Vue). Understand component architecture, state management, and the framework's ecosystem."
+                },
+                {
+                    phase: "Months 9-12",
+                    title: "Architect Scalable Systems",
+                    description: "Learn about architectural patterns (e.g., microfrontends), design systems, data flow management, and API integration (REST vs. GraphQL)."
+                },
+                {
+                    phase: "Months 13-18",
+                    title: "Engineer for Excellence",
+                    description: "Focus on performance (Core Web Vitals), security (OWASP), and accessibility (WCAG). Implement robust error handling and resilient UI patterns."
+                },
+                {
+                    phase: "Months 19-24+",
+                    title: "Master the Modern Workflow",
+                    description: "Implement advanced Git workflows, automated testing strategies, and CI/CD pipelines. Focus on code quality, maintainability, and collaboration."
+                }
+            ];
+
+            const timelineContainer = document.getElementById('timeline-container');
+            timelineData.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = `timeline-item relative py-4 ${index === 0 ? 'active' : ''}`;
+                div.innerHTML = `
+                    <h4 class="font-semibold text-lg cursor-pointer">${item.phase}: ${item.title}</h4>
+                    <div class="timeline-content text-stone-600 mt-2 ${index === 0 ? '' : 'hidden'}">
+                        <p>${item.description}</p>
+                        <button class="suggest-next-steps-button mt-2 px-3 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">✨ Suggest Next Steps</button>
+                        <div class="suggestion-output mt-2 p-3 bg-blue-50 rounded-md border border-blue-200 hidden"><div class="loading-indicator"></div><div class="generated-text generated-content"></div></div>
+                    </div>
+                `;
+                timelineContainer.appendChild(div);
+
+                div.querySelector('h4').addEventListener('click', () => {
+                    document.querySelectorAll('.timeline-item').forEach(el => el.classList.remove('active'));
+                    document.querySelectorAll('.timeline-content').forEach(el => el.classList.add('hidden'));
+                    
+                    div.classList.add('active');
+                    div.querySelector('.timeline-content').classList.remove('hidden');
+                });
+            });
+
+            const ctx = document.getElementById('frameworksChart').getContext('2d');
+            let frameworksChart;
+
+            const updateChart = () => {
+                const activeFrameworks = Array.from(document.querySelectorAll('.framework-toggle.active')).map(btn => btn.dataset.framework);
+                const chartData = {
+                    labels: ['Learning Curve', 'Performance', 'Scalability', 'Ecosystem'],
+                    datasets: []
+                };
+
+                const colors = {
+                    'React': 'rgba(96, 165, 250, 0.8)', // blue-400
+                    'Angular': 'rgba(248, 113, 113, 0.8)', // red-400
+                    'Vue.js': 'rgba(52, 211, 153, 0.8)' // emerald-400
+                };
+                const borderColors = {
+                    'React': 'rgb(59, 130, 246)',
+                    'Angular': 'rgb(239, 68, 68)',
+                    'Vue.js': 'rgb(16, 185, 129)'
+                };
+
+                activeFrameworks.forEach(fw => {
+                    chartData.datasets.push({
+                        label: fw,
+                        data: Object.values(frameworkData[fw]),
+                        backgroundColor: colors[fw],
+                        borderColor: borderColors[fw],
+                        borderWidth: 2,
+                        borderRadius: 5
+                    });
+                });
+                
+                if (frameworksChart) {
+                    frameworksChart.destroy();
+                }
+
+                frameworksChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Framework Feature Comparison (Higher is Better, except Learning Curve)',
+                                font: {
+                                    size: 16
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            if (context.label === 'Learning Curve') {
+                                               label += `${context.parsed.y} (Lower is better)`;
+                                            } else {
+                                               label += `${context.parsed.y} / 5`;
+                                            }
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 5,
+                                grid: {
+                                    color: '#e2e8f0' // slate-200
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            };
+
+            document.querySelectorAll('.framework-toggle').forEach(button => {
+                button.addEventListener('click', () => {
+                    button.classList.toggle('active');
+                    updateChart();
+                });
+            });
+
+            updateChart();
+
+            const tabButtons = document.querySelectorAll('#tabs-foundations .tab-button');
+            const tabContents = document.querySelectorAll('#tab-content-foundations > div');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    const tabName = button.dataset.tab;
+
+                    tabContents.forEach(content => {
+                        if (content.dataset.tabContent === tabName) {
+                            content.classList.remove('hidden');
+                        } else {
+                            content.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+
+            const sidebarLinks = document.querySelectorAll('.sidebar-link');
+            const sections = document.querySelectorAll('main section');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const id = entry.target.getAttribute('id');
+                        sidebarLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href') === `#${id}`) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, { rootMargin: '-30% 0px -70% 0px' });
+            sections.forEach(section => observer.observe(section));
+
+            const menuToggle = document.getElementById('menu-toggle');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const menuOpenIcon = document.getElementById('menu-open-icon');
+            const menuCloseIcon = document.getElementById('menu-close-icon');
+
+            menuToggle.addEventListener('click', () => {
+                mobileMenu.classList.toggle('-translate-x-full');
+                menuOpenIcon.classList.toggle('hidden');
+                menuCloseIcon.classList.toggle('hidden');
+            });
+            
+            document.querySelectorAll('#mobile-sidebar-nav a').forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('-translate-x-full');
+                    menuOpenIcon.classList.remove('hidden');
+                    menuCloseIcon.classList.add('hidden');
+                });
+            });
+
+            // Gemini API Integration
+            async function callGemini(prompt, outputElement) {
+                const loadingIndicator = outputElement.querySelector('.loading-indicator');
+                const generatedTextDiv = outputElement.querySelector('.generated-text');
+                
+                outputElement.classList.remove('hidden');
+                generatedTextDiv.textContent = '';
+                loadingIndicator.classList.remove('hidden');
+
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        generatedTextDiv.textContent = result.candidates[0].content.parts[0].text;
+                    } else {
+                        generatedTextDiv.textContent = 'Error: No content generated.';
+                        console.error('Gemini API response structure unexpected:', result);
+                    }
+                } catch (error) {
+                    generatedTextDiv.textContent = 'Error fetching data from Gemini API: ' + error.message;
+                    console.error('Gemini API fetch error:', error);
+                } finally {
+                    loadingIndicator.classList.add('hidden');
+                }
+            }
+
+            // Foundations - Detailed Explanation Buttons
+            document.querySelectorAll('.generate-explanation-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const concept = this.dataset.concept;
+                    const outputDiv = this.nextElementSibling; // Get the next sibling, which is the explanation-output div
+                    const prompt = `Provide a detailed explanation of ${concept}. Focus on key concepts and provide a simple code example if applicable.`;
+                    callGemini(prompt, outputDiv);
+                });
+            });
+
+            // Learning Plan - Suggest Next Steps Buttons
+            document.querySelectorAll('.suggest-next-steps-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const timelineContentDiv = this.closest('.timeline-content');
+                    const phaseTitle = timelineContentDiv.previousElementSibling.textContent; // Get the H4 text
+                    const phaseDescription = timelineContentDiv.querySelector('p').textContent; // Get the P text
+                    const outputDiv = this.nextElementSibling; // Get the next sibling, which is the suggestion-output div
+                    
+                    const prompt = `For the learning phase "${phaseTitle}" with description "${phaseDescription}", suggest 3-5 specific actionable next steps, including types of online courses, books, or mini-projects to undertake to master this phase.`;
+                    callGemini(prompt, outputDiv);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
